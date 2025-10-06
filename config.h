@@ -39,3 +39,11 @@ constexpr float EPS = 1e-6f;
 constexpr int Q_DIM =     N_HEADS * HEAD_DIM; // 16 * 128 = 2048
 constexpr int KV_DIM = N_KV_HEADS * HEAD_DIM; //  8 * 128 = 1024
 
+// ================================================================
+// Sampling Parameters
+// ================================================================
+
+constexpr float DEFAULT_TEMPERATURE = 0.6f;
+constexpr float DEFAULT_TOP_P = 0.95f;
+constexpr int DEFAULT_TOP_K = 20;
+constexpr float DEFAULT_REPETITION_PENALTY = 1.0f;

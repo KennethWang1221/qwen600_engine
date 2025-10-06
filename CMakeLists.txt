@@ -38,27 +38,27 @@ message(STATUS "Targeting CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add executable target (commented until we create main.cu)
-# add_executable(qwen600_engine
-#     main.cu
-# )
+# Add executable target
+add_executable(qwen600_engine
+    main.cu
+)
 
-# Link libraries (commented until we add the executable)
-# target_link_libraries(qwen600_engine
-#     PRIVATE           # Added PRIVATE keyword from original
-#     CUDA::cublas
-#     CUDA::cudart     # Keep this as we might need it
-# )
+# Link libraries
+target_link_libraries(qwen600_engine
+    PRIVATE
+    CUDA::cublas
+    CUDA::cudart
+)
 
-# Add CUDA specific compile options (from original)
-# target_compile_options(qwen600_engine PRIVATE
-#     $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
-# )
+# Add CUDA specific compile options
+target_compile_options(qwen600_engine PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+)
 
-# Disable warnings for both C++ and CUDA (from original)
-# if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-#     target_compile_options(qwen600_engine PRIVATE -w)
-# endif()
-# if (CMAKE_CUDA_COMPILER_ID MATCHES "NVIDIA")
-#     target_compile_options(qwen600_engine PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-w>)
-# endif()
+# Disable warnings for both C++ and CUDA
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(qwen600_engine PRIVATE -w)
+endif()
+if (CMAKE_CUDA_COMPILER_ID MATCHES "NVIDIA")
+    target_compile_options(qwen600_engine PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-w>)
+endif()
