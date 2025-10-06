@@ -10,9 +10,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)  # Added from original
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)  # Added from original
 
-# Set build type and debug flags (from original)
+# Set build type and debug flags
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -G -g -O3")
+# In Debug mode, disable optimizations and add debug info
+set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G -g -O0")
+# In Release mode, enable full optimization
+set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -O3")
 
 # Set CUDA architecture based on your GPU
 # 75=Turing (20xx)
