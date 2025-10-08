@@ -10,12 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)  # Added from original
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)  # Added from original
 
-# Set build type and debug flags
+# Set build type and debug flags (from original)
 set(CMAKE_BUILD_TYPE Debug)
-# In Debug mode, disable optimizations and add debug info
-set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G -g -O0")
-# In Release mode, enable full optimization
-set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -O3")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -G -g -O3")
 
 # Set CUDA architecture based on your GPU
 # 75=Turing (20xx)
@@ -41,10 +38,13 @@ message(STATUS "Targeting CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add executable target
+# Add executable targets
 add_executable(qwen600_engine
     main.cu
 )
+
+add_executable(string_test
+    string_test.cu)
 
 # Link libraries
 target_link_libraries(qwen600_engine
