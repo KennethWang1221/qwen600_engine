@@ -1,113 +1,96 @@
-# QWEN600 Engine
+# Qwen Inference Engine
 
-A CUDA-based inference engine for QWEN3-0.6B model implementation, focusing on educational purposes and CUDA programming practice.
+A from-scratch GPU-accelerated LLM inference engine for learning CUDA, C++, and transformer internals.
 
-## Project Overview
+## Project Status
 
-This project aims to create a lightweight, efficient inference engine for the QWEN3-0.6B model with the following features:
-- Single batch inference engine
-- Static-constanted for compile-time optimization
-- Pure CUDA C/C++ implementation
-- Minimal library dependencies (cuBLAS, CUB)
-- Efficient memory pipeline
-- Zero-cost pointer-based weight management on GPU
+**Phase 0: ✅ Complete** - Initialization verified (16/16 tests passing)  
+**Phase 1: 🔨 Ready** - CUDA kernels implementation
 
-## Development Status
+## Quick Start
 
-🚧 Currently under development 🚧
+### Build
+```bash
+mkdir -p build && cd build
+cmake ..
+make
+```
+
+### Verify Phase 0
+```bash
+cd build
+./test_phase0_initialization /path/to/model.safetensors
+```
+
+Should see: **"✓ ALL TESTS PASSED! READY FOR PHASE 1!"**
+
+## Project Structure
+
+```
+qwen600_engine/
+├── main.cu                 # Main application
+├── config.h                # Model configuration
+├── qwen_model.cuh          # Core model implementation
+├── static_loader.h         # Weight loading
+├── CMakeLists.txt          # Build system
+├── docs/                   # 📚 All documentation
+│   ├── LEARNING_GUIDE.md        # Complete 8-week roadmap (ALL phases)
+│   └── PHASE0_VERIFICATION.md   # Phase 0 testing & status
+├── tests/                  # 🧪 All tests (one per phase)
+│   └── test_phase0_initialization.cu
+└── build/                  # Build output
+```
+
+## Documentation
+
+- **[📖 LEARNING_GUIDE.md](docs/LEARNING_GUIDE.md)** - Complete 8-week roadmap for ALL phases
+- **[✅ PHASE0_VERIFICATION.md](docs/PHASE0_VERIFICATION.md)** - Phase 0 testing & completion status
+- **[🔨 BUILD_GUIDE.md](docs/BUILD_GUIDE.md)** - Proper build workflow (avoid common mistakes)
+
+## What's Implemented
+
+### ✅ Phase 0: Setup & Weight Loading
+- Project infrastructure (CMake, build system)
+- **`build_transformer()`** - Complete initialization function
+- SafeTensors weight loading (~1.5 GB)
+- GPU memory management (~2.4 GB total)
+- cuBLAS initialization
+- Zero memory leaks
+
+### 🔨 Phase 1: CUDA Kernels (Next)
+- RMSNorm
+- RoPE (Rotary Position Embedding)
+- Attention mechanism
+- SwiGLU activation
+
+See [Learning Guide](docs/LEARNING_GUIDE.md) for full roadmap.
 
 ## Requirements
 
-- CUDA Toolkit
-- CMake (>= 3.18)
-- C++17 compatible compiler
-- cuBLAS library
-- CUDA-GDB for debugging
+- CUDA Toolkit 11.0+
+- CMake 3.15+
+- C++17 compiler
+- GPU with 3GB+ VRAM
 
-## Building from Source
+## Model
 
-### Release Build (for performance)
+Download Qwen 0.6B model in SafeTensors format:
 ```bash
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
+huggingface-cli download Qwen/Qwen2.5-0.6B --include "*.safetensors" --local-dir ./model
 ```
 
-### Debug Build (for development)
-```bash
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
-```
+## Next Steps
 
-### Clean Rebuild
-If you need to rebuild from scratch:
-```bash
-cd build
-rm -rf *
-cmake -DCMAKE_BUILD_TYPE=Debug ..  # or Release
-make VERBOSE=1  # Shows detailed compilation commands
-```
-
-## Debugging with CUDA-GDB
-
-1. Build in Debug mode first:
-```bash
-cd build
-rm -rf *
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
-```
-
-2. Start CUDA-GDB with TUI (Text User Interface):
-```bash
-cuda-gdb-python3.12-tui qwen600_engine
-```
-
-3. Common debugging commands:
-```bash
-# Breakpoints
-(cuda-gdb) break main              # Set breakpoint at main
-(cuda-gdb) info breakpoints        # List all breakpoints
-(cuda-gdb) delete N                # Delete breakpoint N
-(cuda-gdb) disable N               # Disable breakpoint N
-(cuda-gdb) enable N                # Enable breakpoint N
-
-# Navigation
-(cuda-gdb) run models/ -t 0.6      # Run with arguments
-(cuda-gdb) n                       # Next line
-(cuda-gdb) s                       # Step into function
-(cuda-gdb) up                      # Move up one stack frame
-(cuda-gdb) down                    # Move down one stack frame
-(cuda-gdb) frame N                 # Switch to frame N
-(cuda-gdb) list                    # Show source code around current line
-(cuda-gdb) where                   # Show current location (like bt)
-
-# Inspection
-(cuda-gdb) p variable_name         # Print variable value
-(cuda-gdb) bt                      # Show backtrace
-(cuda-gdb) info cuda threads       # Show CUDA threads
-(cuda-gdb) cuda thread             # Switch between CUDA threads
-(cuda-gdb) layout src              # Show source code view
-(cuda-gdb) quit                    # Exit debugger
-```
-
-4. Keyboard shortcuts in TUI mode:
-- Ctrl-X + 1: Show single window
-- Ctrl-X + 2: Show two windows
-- Ctrl-L: Refresh screen
-- Ctrl-P/Ctrl-N: Previous/Next command
-- Ctrl-X + A: Toggle TUI mode
+1. ✅ Verify Phase 0 passes all tests
+2. 📖 Read [Learning Guide](docs/LEARNING_GUIDE.md) Week 1-2
+3. 🔧 Implement RMSNorm kernel
+4. 🧪 Test and verify
+5. 🚀 Continue with remaining kernels
 
 ## License
 
 MIT License
 
-## Acknowledgments
+---
 
-This project is inspired by:
-- llama.cpp
-- qwen3.c
-- LLMs-from-scratch
+**Current Status**: Phase 0 complete, ready for kernel implementation! 🚀

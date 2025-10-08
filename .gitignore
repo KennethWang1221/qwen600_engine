@@ -1,52 +1,24 @@
-# Build directories
+# Build directory
 build/
-build*/
-cmake-build*/
 
-# Model files
-*.bin
-*.safetensors
-*.pt
-*.pth
-*.onnx
-
-# CMake generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
+# CMake generated files (in root)
 Makefile
-
-# Compiled files
-*.o
-*.so
-*.a
-*.dll
-*.dylib
-*.exe
-*.out
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
 
 # IDE files
 .vscode/
 .idea/
 *.swp
-.vs/
-*.sln
-*.vcxproj*
+*.swo
 
-# System files
-.DS_Store
+# Compiled files
+*.o
+*.so
+*.a
+*.out
+
+# Editor backup files
 *~
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# CUDA specific
-*.i
-*.ii
-*.gpu
-*.ptx
-*.cubin
-*.fatbin
+.DS_Store

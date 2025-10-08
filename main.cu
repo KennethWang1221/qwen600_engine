@@ -4,11 +4,11 @@
 #include <time.h>
 
 #include "config.h"
+#include "qwen_model.cuh"
 
-// Forward declarations - we'll implement these later
-class Tokenizer;
-class Transformer;
-class Sampler;
+// Forward declarations for components not yet implemented
+// class Tokenizer;  // TODO: Implement later
+// class Sampler;    // TODO: Implement later
 
 // ================================================================
 // Utils
@@ -127,8 +127,12 @@ int main(int argc, char *argv[]) {
     printf("- Thinking mode: %s\n", enable_thinking ? "enabled" : "disabled");
     printf("- Random seed: %llu\n", rng_seed);
 
+
+    Transformer transformer;
+    build_transformer(&transformer, model_path);
+    
     // TODO: Initialize components once implemented
-    // Transformer transformer;
+    
     // Tokenizer tokenizer;
     // Sampler sampler;
 

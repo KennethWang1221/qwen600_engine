@@ -52,13 +52,21 @@ message(STATUS "Targeting CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add executable targets
+# Add main executable
 add_executable(qwen600_engine
     main.cu
 )
-
-# Link libraries
 target_link_libraries(qwen600_engine
+    PRIVATE
+    CUDA::cublas
+    CUDA::cudart
+)
+
+# Add test executable for Phase 0 verification
+add_executable(test_phase0_initialization
+    tests/test_phase0_initialization.cu
+)
+target_link_libraries(test_phase0_initialization
     PRIVATE
     CUDA::cublas
     CUDA::cudart
