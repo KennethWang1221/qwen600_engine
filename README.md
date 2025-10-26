@@ -79,6 +79,58 @@ Download Qwen 0.6B model in SafeTensors format:
 huggingface-cli download Qwen/Qwen2.5-0.6B --include "*.safetensors" --local-dir ./model
 ```
 
+## Debugging with CUDA-GDB
+
+### Setup
+```bash
+# Build with debug symbols
+cd build
+rm -rf *
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make -j$(nproc)
+
+# Start debugger
+cuda-gdb-python3.12-tui qwen600
+```
+
+### Essential Commands
+```bash
+# Navigation
+n, next          # Next line
+s, step          # Step into function
+c, continue      # Continue to breakpoint
+bt               # Show call stack
+up               # Go up one frame
+down             # Go back down
+frame N          # Jump to frame N
+
+# Display
+layout src       # Show source view
+refresh          # Refresh screen
+Ctrl-X-o        # Switch windows
+
+# Debugging
+break main                 # Set breakpoint
+print var                 # Print variable
+print *array@10          # Print array elements
+info locals              # Show local variables
+
+# Run program with parameters
+run ../../Qwen3-0.6B -r 1 -t 0.65 -p 0.9 -k 20
+```
+
+### Fix Common Issues
+```bash
+# If display repeats lines:
+set pagination on
+set height 0
+set logging off
+
+# If variables show "optimized out":
+set print static-members off
+set print object on
+```
+
 ## Next Steps
 
 1. ✅ Verify Phase 0 passes all tests
@@ -89,8 +141,8 @@ huggingface-cli download Qwen/Qwen2.5-0.6B --include "*.safetensors" --local-dir
 
 ## License
 
-MIT License
-
----
+MIT License---
 
 **Current Status**: Phase 0 complete, ready for kernel implementation! 🚀
+
+
