@@ -90,7 +90,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug ..
 make -j$(nproc)
 
 # Start debugger
-cuda-gdb-python3.12-tui qwen600
+cuda-gdb-python3.12-tui qwen600_engine
 ```
 
 ### Essential Commands
