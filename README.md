@@ -100,20 +100,63 @@ n, next          # Next line
 s, step          # Step into function
 c, continue      # Continue to breakpoint
 bt               # Show call stack
-up               # Go up one frame
+up               # Go up one stack frame
 down             # Go back down
 frame N          # Jump to frame N
 
-# Display
+# Display Control
 layout src       # Show source view
 refresh          # Refresh screen
-Ctrl-X-o        # Switch windows
+Ctrl-X-o        # Switch between windows
+Ctrl-X-a        # Exit/enter TUI mode
+focus cmd        # Focus command window
+focus src        # Focus source window
 
-# Debugging
-break main                 # Set breakpoint
-print var                 # Print variable
-print *array@10          # Print array elements
-info locals              # Show local variables
+# TUI Navigation
+# When focus is on source window:
+Up/Down arrows   # Scroll source code
+PgUp/PgDn       # Page up/down in source
+
+# When focus is on command window:
+Up/Down arrows   # Command history
+Left/Right      # Edit command line (use Ctrl-B/Ctrl-F if arrows don't work)
+
+# Debugging Commands (what you CAN run in CUDA-GDB)
+break main                 # Set breakpoint at function
+break file.cu:123         # Set breakpoint at line
+info breakpoints          # List all breakpoints
+delete 1                  # Delete breakpoint #1
+
+# Running/Control
+run <args>                # Start program with arguments
+continue, c               # Continue execution
+next, n                  # Execute next line
+step, s                  # Step into function
+finish                   # Run until function returns
+
+# Examining Variables (works with compiled variables only)
+print var                # Print variable value
+print *array@10         # Print 10 array elements
+print sizeof(var)       # Print size
+info locals             # Show local variables
+info args               # Show function arguments
+
+# Calling Functions (must exist in your compiled code)
+call my_function()      # Call a function from your code
+call printf("test\n")   # Call standard functions
+
+# Stack Navigation
+bt, backtrace           # Show call stack
+frame 0                 # Jump to frame 0
+up                      # Go up one frame
+down                    # Go down one frame
+where                   # Show current location
+
+# What you CANNOT do in CUDA-GDB:
+# ❌ Run arbitrary C code: printf("\n" COLOR_CYAN "...");
+# ❌ Use preprocessor macros: COLOR_CYAN, #define
+# ❌ Declare new variables: int x = 5;
+# ❌ Write loops: for(int i=0; i<10; i++)
 
 # Run program with parameters
 run ../../Qwen3-0.6B -r 1 -t 0.65 -p 0.9 -k 20
