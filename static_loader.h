@@ -135,7 +135,7 @@ struct QwenWeights
     // We allocate one giant GPU memory block and point into it
     void* _gpu_mem_block = nullptr;
     
-    // Destructor: automatically free GPU memory when QwenWeights goes out of scope
+    // Destructor: automatically free GPU memory when QwenWeights goes out of scope The destructor ensures that no matter how your program ends (normal exit, exception, early return), the 1.5GB of GPU memory gets freed. This prevents your GPU from running out of memory if you create/destroy many QwenWeights objects.
     ~QwenWeights()
     {
         if (_gpu_mem_block) { 
@@ -579,7 +579,7 @@ const TensorMetadata TENSOR_METADATA[NUM_TENSORS] =
  * @param filepath: Path to model.safetensors file
  * @param weights: QwenWeights structure to fill
  */
-void load_qwen_weights(
+__attribute__((noinline)) void load_qwen_weights(
     const std::string& filepath, 
     QwenWeights& weights)
 {

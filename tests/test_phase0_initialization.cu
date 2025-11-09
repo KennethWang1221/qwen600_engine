@@ -100,7 +100,8 @@ bool test_weight_loading(const char* model_path) {
         size_t free_before, total;
         cudaMemGetInfo(&free_before, &total);
         
-        qwen_loader::QwenWeights weights;
+        qwen_loader::QwenWeights weights; // qwen_loader is like a package/module (in C++, we call it a "namespace"), QwenWeights is actually a struct, but in C++ structs are basically classes! creating an object/instance called weights , In C++, struct and class are almost identical 
+
         qwen_loader::load_qwen_weights(model_path, weights);
         
         size_t free_after, _;
