@@ -107,6 +107,47 @@ bool test_weight_loading(const char* model_path){
     }
 }
 
+// Test 3: RunState allocation
+bool test_runstate_allocation() {
+    printf("\n" COLOR_CYAN "Test 3: RunState Memory Allocation" COLOR_RESET "\n");
+    
+    size_t free_before, total;
+    cudaMemGetInfo(&free_before, &total);
+    
+    RunState state;
+    malloc_run_state(&state);
+    
+    size_t free_after, _;
+    cudaMemGetInfo(&free_after, &_);
+    
+    size_t allocated = free_before - free_after;
+    printf("  GPU memory allocated: %.2f MB\n", allocated / (1024.0 * 1024.0));
+    
+    // Check expected allocation size (~900-950 MB)
+    // Exact size depends on GPU memory alignment
+    bool size_correct = (allocated > 850 * 1024 * 1024) && 
+                       (allocated < 1000 * 1024 * 1024);
+    
+    TEST_ASSERT(state.x != nullptr, "Activation buffer allocated");
+    TEST_ASSERT(state.key_cache != nullptr, "Key cache allocated");
+    TEST_ASSERT(state.value_cache != nullptr, "Value cache allocated");
+    TEST_ASSERT(size_correct, "Allocated ~940MB for RunState");
+    
+    // Clean up
+    cudaFree(state.x);
+    cudaFree(state.xb);
+    cudaFree(state.xb2);
+    cudaFree(state.hb);
+    cudaFree(state.hb2);
+    cudaFree(state.q);
+    cudaFree(state.att);
+    cudaFree(state.logits);
+    cudaFree(state.key_cache);
+    cudaFree(state.value_cache);
+    cudaFree(state.d_logits_fp32);
+    
+    return size_correct;
+}
 
 int main(int argc, char** argv){
     printf("\n");
@@ -127,4 +168,5 @@ int main(int argc, char** argv){
     // Run all tests
     test_cuda_available();
     test_weight_loading(model_path);
+    test_runstate_allocation();
 }
