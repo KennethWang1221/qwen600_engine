@@ -67,6 +67,24 @@ void error_usage() {
     exit(EXIT_FAILURE);
 }
 
+
+// ================================================================
+// chat loop
+// ================================================================
+
+void read_stdin(const char* guide, char* buffer, size_t bufsize){
+    // read a line from stdin, up to but not including \n
+    printf("%s", guide);
+    if (fgets(buffer, bufsize, stdin) != NULL){
+        size_t len = strlen(buffer);
+        if (len > 0 && buffer[len - 1] == '\n'){
+            // strip newline
+            buffer[len - 1] = '\0';
+        }
+
+    }
+}
+
 // ================================================================
 // Main
 // ================================================================
@@ -117,7 +135,8 @@ int main(int argc, char *argv[]) {
 
     // Construct model path
     char model_path[1024];
-    construct_path(model_path, sizeof(model_path), model_dir, "model.safetensors");
+    char* model_tensor = "model.safetensors" // a pointer holding the address of the first character , m , when passed to the function, filename receives this address , and inside the function (via snprintf),C dereferences the pointer to read each character sequentially
+    construct_path(&model_path[0], sizeof(model_path), model_dir, model_tensor);
 
     printf("\nInitializing with parameters:\n");
     printf("- Model path: %s\n", model_path);
@@ -128,7 +147,7 @@ int main(int argc, char *argv[]) {
     printf("- Random seed: %llu\n", rng_seed);
 
 
-    Transformer transformer;
+    Transformer transformer; // Declares a variable named transformer , 'Transformer' is the TYPE, 'transformer' is the VARIABLE
     build_transformer(&transformer, model_path);
     
     // TODO: Initialize components once implemented
