@@ -1,5 +1,6 @@
 # Build directory
 build/
+Qwen3-0.6B/
 
 # CMake generated files (in root)
 Makefile

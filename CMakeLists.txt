@@ -62,48 +62,15 @@ target_link_libraries(qwen600_engine
     CUDA::cudart
 )
 
-# Add test executable for Phase 0 verification
-add_executable(test_phase0_initialization
-    tests/test_phase0_initialization.cu
-)
-target_link_libraries(test_phase0_initialization
-    PRIVATE
-    CUDA::cublas
-    CUDA::cudart
-)
-
-# Add test executable for Phase 0 verification
-add_executable(test_phase0_initialization_practice
-    tests/test_phase0_initialization_practice.cu
-)
-target_link_libraries(test_phase0_initialization_practice
-    PRIVATE
-    CUDA::cublas
-    CUDA::cudart
-)
-
 # Add CUDA specific compile options
 target_compile_options(qwen600_engine PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
-)
-
-# Also apply to test executables for consistency  
-target_compile_options(test_phase0_initialization PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
-)
-
-target_compile_options(test_phase0_initialization_practice PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
 )
 
 # Disable warnings for both C++ and CUDA
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(qwen600_engine PRIVATE -w)
-    target_compile_options(test_phase0_initialization PRIVATE -w)
-    target_compile_options(test_phase0_initialization_practice PRIVATE -w)
 endif()
 if (CMAKE_CUDA_COMPILER_ID MATCHES "NVIDIA")
     target_compile_options(qwen600_engine PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-w>)
-    target_compile_options(test_phase0_initialization PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-w>)
-    target_compile_options(test_phase0_initialization_practice PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-w>)
 endif()
