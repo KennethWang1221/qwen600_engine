@@ -33,6 +33,32 @@ make -j$(nproc)
 ./qwen600_engine ../Qwen3-0.6B -i "Tell me a story" -t 0.7 -R 1.15 -m 0.05
 ```
 
+### Python API (Optional)
+
+```bash
+# 1. Install pybind11
+pip install pybind11
+
+# 2. Build Python extension
+cd build
+rm -rf *  # Clean previous build
+cmake .. -DBUILD_PYTHON=ON -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
+make -j$(nproc)
+
+# 3. Copy extension to Python package
+cp _qwen_core.*.so ../python/qwen_engine/
+cd ..
+```
+
+Then use in Python (see [example_usage.py](example_usage.py)):
+
+```bash
+export PYTHONPATH=/path/to/qwen600_engine/python:$PYTHONPATH
+python example_usage.py
+```
+
+See [docs/PYTHON_API.md](docs/PYTHON_API.md) for complete API documentation and [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed installation guide.
+
 ## Requirements
 
 - CUDA Toolkit 11.0+
@@ -40,6 +66,33 @@ make -j$(nproc)
 - C++17 compiler
 - GPU with 3GB+ VRAM (RTX 3050 or better)
 - cuBLAS library
+- Python 3.7+ (for Python API, optional)
+- pybind11 (for Python API, optional)
+
+## Building
+
+### C++ Executable
+
+```bash
+mkdir -p build && cd build
+cmake ..
+make -j$(nproc)
+```
+
+### Python Package
+
+```bash
+# Install dependencies
+pip install pybind11
+
+# Install in development mode
+pip install -e .
+
+# Or regular installation
+pip install .
+```
+
+See [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed Python package installation instructions.
 
 ## Command-Line Options
 
@@ -126,9 +179,24 @@ qwen600_engine/
 ├── memory_manager.cuh      # Unified memory management
 ├── benchmark.sh            # Automated benchmarking
 ├── export.py               # HuggingFace tokenizer converter
+├── python/                 # Python package
+│   ├── qwen_engine/        # Python module
+│   │   ├── __init__.py
+│   │   └── qwen_inference.py
+│   ├── bindings.cpp        # Pybind11 C++ bindings
+│   └── examples/           # Python usage examples
+│       ├── simple_usage.py
+│       └── onnx_style.py
+├── setup.py                # Python package setup
+├── CMakeLists.txt          # CMake build configuration
+├── pyproject.toml          # Python package metadata
 └── docs/                   # Documentation
     ├── README.md           # User guide
-    └── OPTIMIZATIONS.md    # Technical details
+    ├── PYTHON_API.md       # Python API reference
+    ├── PYTHON_INSTALLATION.md  # Python install guide
+    ├── OPTIMIZATIONS.md    # Technical details
+    ├── CHANGELOG.md        # Version history
+    └── TRANSFORMATION_SUMMARY.md  # Project transformation summary
 ```
 
 ## Architecture Features

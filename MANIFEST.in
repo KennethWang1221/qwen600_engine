@@ -1,0 +1,30 @@
+# MANIFEST.in - Specifies additional files to include in distribution
+
+# Include all C++/CUDA source files
+include *.cu
+include *.cuh
+include *.h
+include *.cpp
+include CMakeLists.txt
+include Makefile
+
+# Include documentation
+include README.md
+include LICENSE
+recursive-include docs *.md
+
+# Include Python package
+recursive-include python *.py
+
+# Include build scripts
+include setup.py
+include benchmark.sh
+
+# Exclude build artifacts
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude *.so
+global-exclude *.o
+global-exclude .DS_Store
+
