@@ -13,6 +13,8 @@
 
 #include "config.h"
 #include "static_loader.h"
+#include "cuda_utils.cuh"
+#include "memory_manager.cuh"
 
 // ================================================================
 // globals
@@ -46,6 +48,9 @@ typedef struct
     
     // buffer for final logits converted to fp32 on the GPU
     float* d_logits_fp32;
+    
+    // Unified memory pool for all buffers
+    UnifiedMemoryPool* memory_pool;
 } RunState;
 
 typedef struct
@@ -63,20 +68,22 @@ typedef struct
 void
 malloc_run_state(RunState* s)
 {
-    cudaMalloc(&s->x, DIM * sizeof(bf16));
-    cudaMalloc(&s->xb, DIM * sizeof(bf16));
-    cudaMalloc(&s->xb2, DIM * sizeof(bf16));
-    cudaMalloc(&s->hb, HIDDEN_DIM * sizeof(bf16));
-    cudaMalloc(&s->hb2, HIDDEN_DIM * sizeof(bf16));
-    // query buffer must be Q_DIM, which is N_HEADS * HEAD_DIM = 2048 for this model.
-    cudaMalloc(&s->q, Q_DIM * sizeof(bf16));
+    // Use unified memory pool for efficient allocation
+    s->memory_pool = new UnifiedMemoryPool();
+    const MemoryLayout& layout = s->memory_pool->get_layout();
     
-    cudaMalloc(&s->att, (size_t)N_HEADS * SEQ_LEN * sizeof(float));
-    cudaMalloc(&s->logits, VOCAB_SIZE * sizeof(bf16));
-    cudaMalloc(&s->key_cache, (size_t)N_LAYERS * SEQ_LEN * KV_DIM * sizeof(bf16));
-    cudaMalloc(&s->value_cache, (size_t)N_LAYERS * SEQ_LEN * KV_DIM * sizeof(bf16));
-
-    cudaMalloc(&s->d_logits_fp32, VOCAB_SIZE * sizeof(float));
+    // Assign pointers from unified buffer
+    s->x = s->memory_pool->get_buffer<bf16>(layout.x_offset);
+    s->xb = s->memory_pool->get_buffer<bf16>(layout.xb_offset);
+    s->xb2 = s->memory_pool->get_buffer<bf16>(layout.xb2_offset);
+    s->hb = s->memory_pool->get_buffer<bf16>(layout.hb_offset);
+    s->hb2 = s->memory_pool->get_buffer<bf16>(layout.hb2_offset);
+    s->q = s->memory_pool->get_buffer<bf16>(layout.q_offset);
+    s->att = s->memory_pool->get_buffer<float>(layout.att_offset);
+    s->logits = s->memory_pool->get_buffer<bf16>(layout.logits_offset);
+    s->key_cache = s->memory_pool->get_buffer<bf16>(layout.key_cache_offset);
+    s->value_cache = s->memory_pool->get_buffer<bf16>(layout.value_cache_offset);
+    s->d_logits_fp32 = s->memory_pool->get_buffer<float>(layout.d_logits_fp32_offset);
 }
 
 void
@@ -84,30 +91,30 @@ build_transformer(
     Transformer* t,
     const char* checkpoint_path)
 {
+    printf(COLOR_CYAN "Loading model weights..." COLOR_RESET "\n");
     qwen_loader::load_qwen_weights(checkpoint_path, t->weights);
+    
+    printf(COLOR_CYAN "Allocating runtime state..." COLOR_RESET "\n");
     malloc_run_state(&t->state);
-    cudaMallocHost((void**)&t->h_logits, VOCAB_SIZE * sizeof(float));
-
-    cublasCreate(&t->cublas_handle);
+    
+    CUDA_CHECK(cudaMallocHost((void**)&t->h_logits, VOCAB_SIZE * sizeof(float)));
+    CUBLAS_CHECK(cublasCreate(&t->cublas_handle));
+    
+    printf(COLOR_GREEN "✓" COLOR_RESET " Model initialized successfully\n");
+    print_gpu_memory_info();
 }
 
 void
 free_transformer(Transformer* t)
 {
-    cudaFree(t->state.x);
-    cudaFree(t->state.xb);
-    cudaFree(t->state.xb2);
-    cudaFree(t->state.hb);
-    cudaFree(t->state.hb2);
-    cudaFree(t->state.q);
-    cudaFree(t->state.att);
-    cudaFree(t->state.logits);
-    cudaFree(t->state.key_cache);
-    cudaFree(t->state.value_cache);
-    cudaFree(t->state.d_logits_fp32);
-
-    cudaFreeHost(t->h_logits);
-    cublasDestroy(t->cublas_handle);
+    // Unified cleanup - all buffers freed at once
+    if (t->state.memory_pool) {
+        delete t->state.memory_pool;
+        t->state.memory_pool = nullptr;
+    }
+    
+    CUDA_CHECK(cudaFreeHost(t->h_logits));
+    CUBLAS_CHECK(cublasDestroy(t->cublas_handle));
 }
 
 // ================================================================

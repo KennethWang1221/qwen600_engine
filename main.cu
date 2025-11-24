@@ -204,23 +204,31 @@ chat(
 void 
 error_usage()
 {
-    fprintf(stderr, "\nusage:   ./qwen600 <model_dir> [options]\n");
-    fprintf(stderr, "example: ./qwen600 <model_dir> -r 1\n");
-    fprintf(stderr, "model directory must contain:\n");
+    fprintf(stderr, "\nusage:   ./qwen600_engine <model_dir> [options]\n");
+    fprintf(stderr, "example: ./qwen600_engine Qwen3-0.6B -i \"Hello\" -t 0.7\n");
+    fprintf(stderr, "\nmodel directory must contain:\n");
     fprintf(stderr, "  - model.safetensors\n");
     fprintf(stderr, "  - tokenizer.bin\n");
-    fprintf(stderr, "  - template_*.txt files\n\n");
+    fprintf(stderr, "  - template_*.txt files\n");
 
-    fprintf(stderr, "arguments:\n");
-    fprintf(stderr, "----------\n");
-    fprintf(stderr, "  -r <int>    reasoning mode, 0 (default) = no thinking, 1 = thinking\n");
-    fprintf(stderr, "  -s <int>    random seed, default \n");
-    fprintf(stderr, "  -k <int>    k value in top-k sampling, default 20\n");
-    fprintf(stderr, "  -t <float>  temperature in [0,inf], default 0.6\n");
-    fprintf(stderr, "  -p <float>  p value in top-p (nucleus) sampling in [0,1], default 0.95\n");
+    fprintf(stderr, "\nBasic Options:\n");
     fprintf(stderr, "  -i <string> input prompt\n");
-    fprintf(stderr, "  -y <string> system prompt in chat mode, default is none\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "  -y <string> system prompt (default: none)\n");
+    fprintf(stderr, "  -r <int>    reasoning mode: 0=normal (default), 1=thinking\n");
+    fprintf(stderr, "  -s <int>    random seed (default: time-based)\n");
+    
+    fprintf(stderr, "\nSampling Options:\n");
+    fprintf(stderr, "  -t <float>  temperature (default: 0.6, 0=greedy)\n");
+    fprintf(stderr, "  -k <int>    top-k sampling (default: 20)\n");
+    fprintf(stderr, "  -p <float>  top-p/nucleus sampling (default: 0.95)\n");
+    fprintf(stderr, "  -m <float>  min-p sampling threshold (default: 0.05)\n");
+    
+    fprintf(stderr, "\nAdvanced Sampling (NEW!):\n");
+    fprintf(stderr, "  -R <float>  repetition penalty (default: 1.1, >1.0 discourages repetition)\n");
+    fprintf(stderr, "  -F <float>  frequency penalty (default: 0.0)\n");
+    fprintf(stderr, "  -P <float>  presence penalty (default: 0.0)\n");
+    fprintf(stderr, "  -w <int>    penalty window size (default: 64)\n");
+    fprintf(stderr, "\n");
     exit(EXIT_FAILURE);
 }
 
@@ -228,38 +236,53 @@ int
 main(int argc, char *argv[])
 {
     print_banner();
-    // default parameters
+    
+    // Default parameters
     char *model_dir = NULL;
     float temperature = 0.6f;
     float top_p = 0.95f;
+    float min_p = 0.05f;
     int top_k = 20;
     char *prompt = NULL;        
     unsigned long long rng_seed = 0;
     char *system_prompt = NULL; 
-    int enable_thinking = 0;    
+    int enable_thinking = 0;
+    
+    // Advanced sampling parameters
+    float repetition_penalty = 1.1f;
+    float frequency_penalty = 0.0f;
+    float presence_penalty = 0.0f;
+    int penalty_window = 64;
 
-    // poor man's C argparse so we can override the defaults above from the command line
+    // Argument parsing
     if (argc >= 2) { model_dir = argv[1]; } else { error_usage(); }
     for (int i = 2; i < argc; i+=2)
     {
-        if (i + 1 >= argc)          { error_usage(); } // must have arg after flag
-        if (argv[i][0] != '-')      { error_usage(); } // must start with dash
-        if (strlen(argv[i]) != 2)   { error_usage(); } // must be -x (one dash, one letter)
+        if (i + 1 >= argc)          { error_usage(); }
+        if (argv[i][0] != '-')      { error_usage(); }
+        if (strlen(argv[i]) != 2)   { error_usage(); }
 
-             if (argv[i][1] == 'h') { error_usage(); } // help menu
+             if (argv[i][1] == 'h') { error_usage(); }
         else if (argv[i][1] == 't') { temperature = atof(argv[i + 1]); }
         else if (argv[i][1] == 'p') { top_p = atof(argv[i + 1]); }
+        else if (argv[i][1] == 'm') { min_p = atof(argv[i + 1]); }
         else if (argv[i][1] == 'k') { top_k = atoi(argv[i + 1]); }
         else if (argv[i][1] == 's') { rng_seed = atoi(argv[i + 1]); }
         else if (argv[i][1] == 'i') { prompt = argv[i + 1]; }
         else if (argv[i][1] == 'y') { system_prompt = argv[i + 1]; }
         else if (argv[i][1] == 'r') { enable_thinking = atoi(argv[i + 1]); }
+        else if (argv[i][1] == 'R') { repetition_penalty = atof(argv[i + 1]); }
+        else if (argv[i][1] == 'F') { frequency_penalty = atof(argv[i + 1]); }
+        else if (argv[i][1] == 'P') { presence_penalty = atof(argv[i + 1]); }
+        else if (argv[i][1] == 'w') { penalty_window = atoi(argv[i + 1]); }
         else { error_usage(); }
     }
 
+    // Validate parameters
     if (rng_seed <= 0) rng_seed = (unsigned int)time(NULL);
     if (temperature < 0) temperature = 0;
     if (top_p < 0 || top_p > 1.0) top_p = 0.95;
+    if (min_p < 0 || min_p > 1.0) min_p = 0.05;
 
     char model_path[1024];
     construct_path(model_path, sizeof(model_path), model_dir, "model.safetensors");
@@ -271,7 +294,9 @@ main(int argc, char *argv[])
     build_tokenizer(&tokenizer, model_dir, enable_thinking);
 
     Sampler sampler;
-    build_sampler(&sampler, temperature, top_p, top_k, rng_seed);
+    build_sampler(&sampler, temperature, top_p, min_p, top_k,
+                  repetition_penalty, frequency_penalty, presence_penalty,
+                  penalty_window, rng_seed);
 
     chat(&transformer, &tokenizer, &sampler, prompt, system_prompt, enable_thinking);
 
