@@ -37,10 +37,23 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         
+        # Get pybind11 CMake directory
+        try:
+            import pybind11
+            pybind11_dir = pybind11.get_cmake_dir()
+        except ImportError:
+            raise RuntimeError(
+                "pybind11 is required to build this package. "
+                "Please install it with: pip install pybind11"
+            )
+        
         # CMake configuration arguments
         cmake_args = [
             f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}',
             f'-DPYTHON_EXECUTABLE={sys.executable}',
+            f'-Dpybind11_DIR={pybind11_dir}',
+            '-DBUILD_PYTHON=ON',
+            '-DBUILD_EXECUTABLE=OFF',  # Don't build C++ executable, only Python bindings
             '-DCMAKE_BUILD_TYPE=Release',
         ]
         
@@ -93,8 +106,12 @@ setup(
     
     # Requirements
     python_requires='>=3.7',
+    setup_requires=[
+        'pybind11>=2.6.0',
+    ],
     install_requires=[
         'numpy>=1.19.0',
+        'pybind11>=2.6.0',
     ],
     
     # Optional dependencies

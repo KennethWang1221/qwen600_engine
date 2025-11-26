@@ -91,10 +91,10 @@ echo -e "${YELLOW}=== Benchmark 4: Memory Usage ===${NC}"
 $EXECUTABLE "$MODEL_DIR" -i "Tell me a story." > /dev/null 2>&1 &
 PID=$!
 
-echo "Monitoring GPU memory (5 samples)..."
+echo "Monitoring GPU 0 memory (5 samples)..."
 for i in {1..5}; do
     if ps -p $PID > /dev/null; then
-        nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+        nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits --id=0
         sleep 0.5
     fi
 done

@@ -15,7 +15,7 @@ CUDA inference engine for Qwen3-0.6B with advanced sampling techniques and optim
 ```bash
 # 1. Get the model
 git clone https://huggingface.co/Qwen/Qwen3-0.6B
-python3 export.py Qwen3-0.6B
+python3 export.py
 
 # 2. Build
 mkdir -p build && cd build
@@ -36,25 +36,15 @@ make -j$(nproc)
 ### Python API (Optional)
 
 ```bash
-# 1. Install pybind11
-pip install pybind11
+# 1. Install the package (builds C++ extension automatically)
+pip install -e .
 
-# 2. Build Python extension
-cd build
-rm -rf *  # Clean previous build
-cmake .. -DBUILD_PYTHON=ON -Dpybind11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
-make -j$(nproc)
-
-# 3. Copy extension to Python package
-cp _qwen_core.*.so ../python/qwen_engine/
-cd ..
-```
-
-Then use in Python (see [example_usage.py](example_usage.py)):
-
-```bash
-export PYTHONPATH=/path/to/qwen600_engine/python:$PYTHONPATH
+# 2. Run the example
 python example_usage.py
+
+# Note: If you modify C++/CUDA files (*.cu, *.cuh, *.cpp), you must rebuild:
+#   pip install -e . --no-deps
+# Python files (*.py) don't require rebuilding - changes take effect immediately!
 ```
 
 See [docs/PYTHON_API.md](docs/PYTHON_API.md) for complete API documentation and [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed installation guide.
@@ -82,15 +72,17 @@ make -j$(nproc)
 ### Python Package
 
 ```bash
-# Install dependencies
-pip install pybind11
-
-# Install in development mode
+# Install in development mode (recommended)
 pip install -e .
 
 # Or regular installation
 pip install .
 ```
+
+The installation will automatically:
+- Install required dependencies (pybind11, numpy)
+- Build the C++ extension using CMake
+- Set up the Python package
 
 See [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed Python package installation instructions.
 
@@ -124,12 +116,12 @@ See [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed Pyth
 
 ### Basic Inference
 ```bash
-./qwen600_engine Qwen3-0.6B -i "Explain quantum computing"
+./qwen600_engine ../Qwen3-0.6B -i "Explain quantum computing"
 ```
 
 ### Creative Writing (higher temperature, less repetition)
 ```bash
-./qwen600_engine Qwen3-0.6B \
+./qwen600_engine ../Qwen3-0.6B \
     -i "Write a sci-fi story" \
     -t 0.8 \
     -R 1.2 \
@@ -138,7 +130,7 @@ See [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed Pyth
 
 ### Focused Reasoning (lower temperature, high quality)
 ```bash
-./qwen600_engine Qwen3-0.6B \
+./qwen600_engine ../Qwen3-0.6B \
     -i "Solve this math problem" \
     -r 1 \
     -t 0.3 \
@@ -147,7 +139,7 @@ See [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed Pyth
 
 ### Interactive Chat
 ```bash
-./qwen600_engine Qwen3-0.6B -y "You are a helpful AI assistant"
+./qwen600_engine ../Qwen3-0.6B -y "You are a helpful AI assistant"
 # Then type your messages interactively
 ```
 
@@ -161,7 +153,7 @@ See [docs/PYTHON_INSTALLATION.md](docs/PYTHON_INSTALLATION.md) for detailed Pyth
 
 ### Profiling with Nsight Systems
 ```bash
-nsys profile -o qwen_profile ./qwen600_engine Qwen3-0.6B -i "Test"
+nsys profile -o qwen_profile ./qwen600_engine ../Qwen3-0.6B -i "Test"
 nsys-ui qwen_profile.nsys-rep
 ```
 
@@ -366,7 +358,7 @@ where                   # Show current location
 watch -n 0.5 nvidia-smi
 
 # Check for memory leaks
-cuda-memcheck ./qwen600_engine Qwen3-0.6B -i "Test"
+cuda-memcheck ./qwen600_engine ../Qwen3-0.6B -i "Test"
 ```
 
 ## Performance Tuning Tips

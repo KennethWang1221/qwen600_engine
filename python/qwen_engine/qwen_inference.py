@@ -98,7 +98,7 @@ class QwenInferenceSession:
         >>> session.close()
     """
     
-    def __init__(self, model_path: str, device: int = 0):
+    def __init__(self, model_path: str, device: int = 0, reasoning_mode: int = 0):
         """Initialize the inference session.
         
         Args:
@@ -107,11 +107,15 @@ class QwenInferenceSession:
                 - tokenizer.bin
                 - template_*.txt files
             device: CUDA device ID (default: 0)
+            reasoning_mode: Enable thinking mode: 0=off, 1=on (default: 0)
         
         Raises:
             FileNotFoundError: If model files not found
             RuntimeError: If GPU not available or initialization fails
         """
+        # Set _closed first to avoid AttributeError in __del__ if initialization fails
+        self._closed = True  # Mark as closed by default, set to False after successful init
+        
         # Validate model path
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model directory not found: {model_path}")
@@ -133,10 +137,11 @@ class QwenInferenceSession:
         
         # Initialize C++ backend
         try:
-            self._session = _qwen_core.InferenceSession(model_path, device)
+            self._session = _qwen_core.InferenceSession(model_path, device, reasoning_mode)
             self._model_path = model_path
             self._device = device
-            self._closed = False
+            self._reasoning_mode = reasoning_mode
+            self._closed = False  # Only set to False after successful initialization
         except Exception as e:
             raise RuntimeError(f"Failed to initialize inference session: {e}")
         
@@ -231,6 +236,7 @@ class QwenInferenceSession:
         return {
             'model_path': self._model_path,
             'device': self._device,
+            'reasoning_mode': self._reasoning_mode,
             'model_name': 'Qwen3-0.6B',
             'context_length': 8192,
             'vocab_size': 151936,
@@ -273,7 +279,8 @@ def generate_text(
     model_path: str,
     prompt: str,
     config: Optional[SamplingConfig] = None,
-    device: int = 0
+    device: int = 0,
+    reasoning_mode: int = 0
 ) -> str:
     """Convenience function for one-off text generation.
     
@@ -285,6 +292,7 @@ def generate_text(
         prompt: Input prompt
         config: Sampling configuration
         device: CUDA device ID
+        reasoning_mode: Enable thinking mode: 0=off, 1=on (default: 0)
     
     Returns:
         Generated text
@@ -297,6 +305,6 @@ def generate_text(
         ...     SamplingConfig(temperature=0.7)
         ... )
     """
-    with QwenInferenceSession(model_path, device) as session:
+    with QwenInferenceSession(model_path, device, reasoning_mode) as session:
         return session.generate(prompt, config)
 

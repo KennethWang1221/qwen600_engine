@@ -56,17 +56,26 @@ private:
     Sampler sampler;
     std::string model_path;
     int device_id;
+    int reasoning_mode;
     bool initialized = false;
     std::string system_prompt_str;
     
 public:
     // Constructor: Initialize model
-    InferenceSession(const std::string& model_dir, int device = 0) {
+    InferenceSession(const std::string& model_dir, int device = 0, int reasoning = 0) {
         model_path = model_dir;
         device_id = device;
+        reasoning_mode = reasoning;
         
-        // Set CUDA device
-        cudaSetDevice(device_id);
+        // Set CUDA device with error checking
+        cudaError_t err = cudaSetDevice(device_id);
+        if (err != cudaSuccess) {
+            throw std::runtime_error(
+                std::string("Failed to set CUDA device ") + 
+                std::to_string(device_id) + ": " + 
+                cudaGetErrorString(err)
+            );
+        }
         
         // Construct paths
         char safetensors_path[1024];
@@ -76,7 +85,7 @@ public:
         // Load model
         try {
             build_transformer(&transformer, safetensors_path);
-            build_tokenizer(&tokenizer, model_dir.c_str(), 0);  // reasoning_mode=0
+            build_tokenizer(&tokenizer, model_dir.c_str(), reasoning_mode);
             
             // Default sampler config
             build_sampler(&sampler, 
@@ -111,23 +120,35 @@ public:
         // Update sampler config
         update_sampler_config(config);
         
-        // Prepare prompt
+        // Prepare prompt with overflow checking
         char rendered_prompt[PROMPT_BUFFER_SIZE];
+        int written = 0;
         if (!system_prompt.empty()) {
-            snprintf(rendered_prompt, sizeof(rendered_prompt),
+            written = snprintf(rendered_prompt, sizeof(rendered_prompt),
                     tokenizer.system_prompt_template,
                     system_prompt.c_str(), prompt.c_str());
         } else if (!system_prompt_str.empty()) {
-            snprintf(rendered_prompt, sizeof(rendered_prompt),
+            written = snprintf(rendered_prompt, sizeof(rendered_prompt),
                     tokenizer.system_prompt_template,
                     system_prompt_str.c_str(), prompt.c_str());
         } else {
-            snprintf(rendered_prompt, sizeof(rendered_prompt),
+            written = snprintf(rendered_prompt, sizeof(rendered_prompt),
                     tokenizer.prompt_template, prompt.c_str());
+        }
+        
+        // Check for truncation
+        if (written >= (int)sizeof(rendered_prompt)) {
+            throw std::runtime_error(
+                "Prompt too long (" + std::to_string(written) + 
+                " bytes), maximum is " + std::to_string(sizeof(rendered_prompt)) + " bytes"
+            );
         }
         
         // Encode prompt
         int* prompt_tokens = (int*)malloc(PROMPT_BUFFER_SIZE * sizeof(int));
+        if (!prompt_tokens) {
+            throw std::runtime_error("Failed to allocate memory for prompt tokens");
+        }
         int num_tokens = 0;
         encode(&tokenizer, rendered_prompt, prompt_tokens, &num_tokens);
         
@@ -137,20 +158,24 @@ public:
         int max_tokens = static_cast<int>(config.count("max_tokens") ? 
                                          config.at("max_tokens") : 512);
         
-        for (int i = 0; i < num_tokens + max_tokens; i++) {
-            int token = (i < num_tokens) ? prompt_tokens[i] : 
-                       sample(&sampler, forward(&transformer, token, pos++));
+        // First, process all prompt tokens through the transformer (prefill phase)
+        int token = 0;
+        for (int i = 0; i < num_tokens; i++) {
+            token = prompt_tokens[i];
+            forward(&transformer, token, pos++);  // Build KV cache from prompt
+        }
+        
+        // Then, generate new tokens (generation phase)
+        for (int i = 0; i < max_tokens; i++) {
+            token = sample(&sampler, forward(&transformer, token, pos++));
             
-            // Don't output prompt tokens
-            if (i >= num_tokens) {
-                // Check for EOS
-                if (token == tokenizer.eos_token_id) {
-                    break;
-                }
-                
-                char* piece = decode(&tokenizer, token);
-                output += piece;
+            // Check for EOS
+            if (token == tokenizer.eos_token_id) {
+                break;
             }
+            
+            char* piece = decode(&tokenizer, token);
+            output += piece;
         }
         
         free(prompt_tokens);
@@ -224,13 +249,15 @@ PYBIND11_MODULE(_qwen_core, m) {
     
     // Expose InferenceSession class
     py::class_<InferenceSession>(m, "InferenceSession")
-        .def(py::init<const std::string&, int>(),
+        .def(py::init<const std::string&, int, int>(),
              py::arg("model_path"),
              py::arg("device") = 0,
+             py::arg("reasoning_mode") = 0,
              "Initialize inference session\n\n"
              "Args:\n"
              "    model_path: Path to model directory\n"
-             "    device: CUDA device ID (default: 0)")
+             "    device: CUDA device ID (default: 0)\n"
+             "    reasoning_mode: Enable thinking mode: 0=off, 1=on (default: 0)")
         
         .def("generate", &InferenceSession::generate,
              py::arg("prompt"),

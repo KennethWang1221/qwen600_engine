@@ -31,7 +31,12 @@ void load_single_template(char* buffer, size_t buffer_size, const char* dir_path
         exit(EXIT_FAILURE);
     }
     // Read up to buffer_size - 1 to ensure null termination
-    fread(buffer, 1, buffer_size - 1, file);
+    size_t bytes_read = fread(buffer, 1, buffer_size - 1, file);
+    if (bytes_read == 0 && ferror(file)) {
+        fprintf(stderr, "Error: Failed to read template file %s\n", full_path);
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
     fclose(file);
 }
 
@@ -44,20 +49,47 @@ void build_tokenizer(Tokenizer *t, const char *dir_path, int enable_thinking) {
     t->merge_scores = (float *)malloc(t->vocab_size * sizeof(float));
 
     FILE *file = fopen(tokenizer_path, "rb");
-    if (!file) { fprintf(stderr, "Couldn't load tokenizer model %s\n", tokenizer_path); exit(EXIT_FAILURE); }
-    fread(&t->max_token_length, sizeof(int), 1, file);
-    fread(&t->bos_token_id, sizeof(int), 1, file);
-    fread(&t->eos_token_id, sizeof(int), 1, file);
+    if (!file) { 
+        fprintf(stderr, "Couldn't load tokenizer model %s\n", tokenizer_path); 
+        exit(EXIT_FAILURE); 
+    }
+    
+    // Read header with error checking
+    if (fread(&t->max_token_length, sizeof(int), 1, file) != 1 ||
+        fread(&t->bos_token_id, sizeof(int), 1, file) != 1 ||
+        fread(&t->eos_token_id, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to read tokenizer header from %s\n", tokenizer_path);
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
 
     int len;
     for (int i = 0; i < t->vocab_size; i++) {
         if (fread(t->merge_scores + i, sizeof(float), 1, file) != 1) {
             t->vocab[i] = (char *)malloc(1);
+            if (!t->vocab[i]) {
+                fprintf(stderr, "Error: Failed to allocate memory for vocab[%d]\n", i);
+                fclose(file);
+                exit(EXIT_FAILURE);
+            }
             t->vocab[i][0] = 0;
         } else {
-            fread(&len, sizeof(int), 1, file);
+            if (fread(&len, sizeof(int), 1, file) != 1) {
+                fprintf(stderr, "Error: Failed to read vocab length at index %d\n", i);
+                fclose(file);
+                exit(EXIT_FAILURE);
+            }
             t->vocab[i] = (char *)malloc(len + 1);
-            fread(t->vocab[i], 1, len, file);
+            if (!t->vocab[i]) {
+                fprintf(stderr, "Error: Failed to allocate memory for vocab[%d]\n", i);
+                fclose(file);
+                exit(EXIT_FAILURE);
+            }
+            if (fread(t->vocab[i], 1, len, file) != (size_t)len) {
+                fprintf(stderr, "Error: Failed to read vocab data at index %d\n", i);
+                fclose(file);
+                exit(EXIT_FAILURE);
+            }
             t->vocab[i][len] = 0;
         }
     }
@@ -81,6 +113,13 @@ void free_tokenizer(Tokenizer *t) {
 }
 
 char *decode(Tokenizer *t, int token) {
+    // Bounds checking to prevent array out-of-bounds access
+    if (token < 0 || token >= t->vocab_size) {
+        static char unk_token[] = "<UNK>";
+        fprintf(stderr, "Warning: Invalid token ID %d (vocab_size=%d), returning <UNK>\n", 
+                token, t->vocab_size);
+        return unk_token;
+    }
     return t->vocab[token];
 }
 
@@ -145,8 +184,9 @@ void encode(Tokenizer *t, char *text, int *tokens, int *n_tokens) {
             // we found this codepoint in vocab, add it as a token
             tokens[(*n_tokens)++] = id;
         } else {
-            printf("Warning: unknown character code point %d in input, skipping.\n", *str_buffer);
-            (*n_tokens)++;
+            // BUG FIX: Don't increment n_tokens if we're skipping the character
+            fprintf(stderr, "Warning: unknown character code point %d in input, skipping.\n", *str_buffer);
+            // Note: We skip this character, so don't add to tokens array
         }
     }
 

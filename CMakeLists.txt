@@ -14,22 +14,26 @@ find_package(CUDAToolkit REQUIRED)
 # ============================================================================
 # C++ Executable (main inference engine)
 # ============================================================================
-add_executable(qwen600_engine main.cu)
+option(BUILD_EXECUTABLE "Build C++ executable" ON)
 
-target_include_directories(qwen600_engine PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CUDAToolkit_INCLUDE_DIRS}
-)
+if(BUILD_EXECUTABLE)
+    add_executable(qwen600_engine main.cu)
 
-target_link_libraries(qwen600_engine PRIVATE
-    CUDA::cudart
-    CUDA::cublas
-)
+    target_include_directories(qwen600_engine PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CUDAToolkit_INCLUDE_DIRS}
+    )
 
-set_target_properties(qwen600_engine PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_ARCHITECTURES "70;75;80;86"
-)
+    target_link_libraries(qwen600_engine PRIVATE
+        CUDA::cudart
+        CUDA::cublas
+    )
+
+    set_target_properties(qwen600_engine PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_ARCHITECTURES "70;75;80;86"
+    )
+endif()
 
 # ============================================================================
 # Python Bindings (optional, only if pybind11 is available)

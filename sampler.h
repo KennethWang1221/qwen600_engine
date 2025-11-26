@@ -255,8 +255,9 @@ sample(Sampler* sampler, float* logits) {
     next_token = sampler->probindex[n_cands - 1].index;
     
 record_token:
-    // Update token history
-    if (sampler->recent_tokens && next_token >= 0 && next_token < VOCAB_SIZE) {
+    // Update token history with proper NULL checks
+    if (sampler->recent_tokens && sampler->token_counts && 
+        next_token >= 0 && next_token < VOCAB_SIZE) {
         sampler->token_counts[next_token]++;
         sampler->recent_tokens[sampler->recent_token_pos] = next_token;
         sampler->recent_token_pos = (sampler->recent_token_pos + 1) % sampler->recent_token_capacity;
@@ -294,11 +295,26 @@ build_sampler(
     sampler->presence_penalty = presence_penalty;
     sampler->rng_state = rng_seed;
     sampler->probindex = (ProbIndex*)malloc(VOCAB_SIZE * sizeof(ProbIndex));
+    if (!sampler->probindex) {
+        fprintf(stderr, "Error: Failed to allocate memory for probindex\n");
+        exit(EXIT_FAILURE);
+    }
     
     if (penalty_window_size > 0) {
         sampler->recent_token_capacity = penalty_window_size;
         sampler->recent_tokens = (int*)malloc(penalty_window_size * sizeof(int));
+        if (!sampler->recent_tokens) {
+            fprintf(stderr, "Error: Failed to allocate memory for recent_tokens\n");
+            free(sampler->probindex);
+            exit(EXIT_FAILURE);
+        }
         sampler->token_counts = (float*)calloc(VOCAB_SIZE, sizeof(float));
+        if (!sampler->token_counts) {
+            fprintf(stderr, "Error: Failed to allocate memory for token_counts\n");
+            free(sampler->recent_tokens);
+            free(sampler->probindex);
+            exit(EXIT_FAILURE);
+        }
         sampler->recent_token_count = 0;
         sampler->recent_token_pos = 0;
     } else {
