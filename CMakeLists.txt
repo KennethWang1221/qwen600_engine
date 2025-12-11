@@ -31,7 +31,7 @@ if(BUILD_EXECUTABLE)
 
     set_target_properties(qwen600_engine PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
-        CUDA_ARCHITECTURES "70;75;80;86"
+        CUDA_ARCHITECTURES "80;86;89"
     )
 endif()
 
@@ -63,7 +63,7 @@ if(BUILD_PYTHON)
         
         set_target_properties(_qwen_core PROPERTIES
             CUDA_SEPARABLE_COMPILATION ON
-            CUDA_ARCHITECTURES "70;75;80;86"
+            CUDA_ARCHITECTURES "80;86;89"
         )
         
         install(TARGETS _qwen_core

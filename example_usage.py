@@ -17,7 +17,7 @@ from qwen_engine import QwenInferenceSession, SamplingConfig
 
 # Create session with model path
 # Option 1: Use existing model in test directory
-model_path = "/home/ai2/anaconda3/PROJECTS/test/Qwen3-0.6B"
+model_path = "Qwen3-0.6B"
 
 # Option 2: Download model first if you don't have it:
 #   git clone https://huggingface.co/Qwen/Qwen3-0.6B

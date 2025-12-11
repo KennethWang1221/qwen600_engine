@@ -14,6 +14,7 @@ CUDA inference engine for Qwen3-0.6B with advanced sampling techniques and optim
 
 ```bash
 # 1. Get the model
+uv pip install -r requirements.txt
 git clone https://huggingface.co/Qwen/Qwen3-0.6B
 python3 export.py
 
@@ -37,7 +38,7 @@ make -j$(nproc)
 
 ```bash
 # 1. Install the package (builds C++ extension automatically)
-pip install -e .
+uv pip install -e .
 
 # 2. Run the example
 python example_usage.py
@@ -73,10 +74,10 @@ make -j$(nproc)
 
 ```bash
 # Install in development mode (recommended)
-pip install -e .
+uv pip install -e .
 
 # Or regular installation
-pip install .
+uv pip install .
 ```
 
 The installation will automatically:
