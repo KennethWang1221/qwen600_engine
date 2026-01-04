@@ -1,6 +1,6 @@
 # Build directory
 build/
-Qwen3-0.6B/
+Qwen3-0.6B
 .venv/
 .envrc
 
